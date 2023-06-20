@@ -2,6 +2,8 @@ package com.github.hokkaydo.eplbot.module.quote;
 
 import com.github.hokkaydo.eplbot.Main;
 import com.github.hokkaydo.eplbot.MessageUtil;
+import com.github.hokkaydo.eplbot.frobisher.FrobisherMessageManager;
+
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
@@ -16,8 +18,11 @@ import java.util.regex.Pattern;
 public class QuoteListener extends ListenerAdapter {
 
     private final Long guildId;
+    private FrobisherMessageManager manager;
     public QuoteListener(Long guildId) {
         this.guildId = guildId;
+        
+        manager = new FrobisherMessageManager(Main.getJDA().getGuildById(guildId));
     }
     private static final Pattern MESSAGE_URL_PATTERN = Pattern.compile("https?://(canary.|ptb.)?discord.com/channels/\\d*/\\d*/\\d*");
     @Override
@@ -28,13 +33,17 @@ public class QuoteListener extends ListenerAdapter {
                 .map(matchResult -> {String[] split = matchResult.group().split("/"); return new Tuple3<>(split[4], split[5], split[6]);})
                 .map(this::toMessage)
                 .filter(Objects::nonNull)
-                .forEach(m -> MessageUtil.toEmbedWithAttachements(m, e -> {
-                    Member authorMember = event.getGuild().getMemberById(m.getAuthor().getIdLong());
-                    boolean hasNickname = authorMember != null && authorMember.getNickname() != null;
-                    String authorNickAndTag = (hasNickname  ? authorMember.getNickname() + " (" : "") + m.getAuthor().getAsTag() + (hasNickname ? ")" : "");
+                .forEach(m -> { //MessageUtil.toEmbedWithAttachements(m, e -> {
+                    // Member authorMember = event.getGuild().getMemberById(m.getAuthor().getIdLong());
+                    // boolean hasNickname = authorMember != null && authorMember.getNickname() != null;
+                    // String authorNickAndTag = (hasNickname  ? authorMember.getNickname() + " (" : "") + m.getAuthor().getAsTag() + (hasNickname ? ")" : "");
+                    
+                    manager.sendMessage(m, m.getAuthor()); //TODO: reset quotes as embeds
 
-                    return event.getMessage().replyEmbeds(e.setAuthor(authorNickAndTag, m.getJumpUrl(), m.getAuthor().getAvatarUrl()).build());
-                }));
+                    // return event.getMessage().replyEmbeds(e.setAuthor(authorNickAndTag, m.getJumpUrl(), m.getAuthor().getAvatarUrl()).build());
+                //})
+                });
+        
     }
 
     private record Tuple3<A, B, C>(A a, B b, C c) {}
